@@ -1,0 +1,39 @@
+.appear-now-token {
+  position: fixed;
+  bottom: 10%;
+  left: 10%;
+  z-index: 10000;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.appear-now-dialogue {
+  font-size: 12px; /* Ensure text is readable */
+  line-height: 1.4em; /* Adjust line height for readability */
+  overflow-y: auto; /* Enable vertical scrolling */
+  background-color: rgba(0, 0, 0, 0.75); /* Semi-transparent background */
+  color: white;
+  padding: 10px; /* Adjust padding around text */
+  border-radius: 8px; /* Rounded corners for appearance */
+  box-shadow: 0 0 8px rgba(0, 0, 0, 0.5); /* Shadow for better visibility */
+  box-sizing: border-box; /* Include padding and border in the element’s total width and height */
+  width: 100%;
+  min-height: 100px;
+  overflow: hidden;
+  overflow-y: auto;
+  max-height: 100%;
+}
+
+.dialogue-content {
+  white-space: pre-wrap; /* Preserve line breaks */
+  background-color: transparent; /* Ensure background is transparent */
+  padding: 0; /* No extra padding */
+  margin: 0; /* No extra margin */
+}
+
+.appear-now-token img {
+  border: none; /* Removes any default border */
+  margin: 0; /* Removes any default margin */
+  padding: 0; /* Removes any default padding */
+}

@@ -1,0 +1,14 @@
+{
+  "name": "appear-now",
+  "title": "Appear Now",
+  "description": "Makes an actor's token appear on-screen when they speak, with scrolling dialogue.",
+  "version": "1.0.0",
+  "authors": [{"name": "Mangonisium"}],
+  "esmodules": ["scripts/appear-now.js"],
+  "styles": ["styles/appear-now.css"],
+  "scripts": ["settings.js"],
+  "compatibility": {
+    "minimum": "11.0.0",
+    "verified": "12.0.0"
+  }
+}
