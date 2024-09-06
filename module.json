@@ -6,7 +6,7 @@
   "authors": [{"name": "Mangonisium"}],
   "esmodules": ["scripts/appear-now.js"],
   "styles": ["styles/appear-now.css"],
-  "scripts": ["settings.js"],
+  "scripts": [],
   "compatibility": {
     "minimum": "11.0.0",
     "verified": "12.0.0"

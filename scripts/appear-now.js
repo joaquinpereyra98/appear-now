@@ -1,5 +1,10 @@
+import initSettings from "./setting.js";
+
 let activeTokens = [];
 const tokenBuffer = 10; // Buffer between tokens for readability
+
+// INIT HOOK
+Hooks.on('init', initSettings);
 
 /**
  * Updated the renderTokenConfig hook to utilize the new <file-picker> element introduced in v12.
