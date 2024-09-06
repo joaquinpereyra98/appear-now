@@ -20,11 +20,10 @@ Hooks.on("renderTokenConfig", (app, html, data) => {
   html.find("div.tab[data-tab='appearance']").append(newHtml);
 });
 
-
 /**
- * 
+ *
  * The issue arises with the preUpdateToken hook. Document#setFlag triggers a database update, which in turn activates the hook again, causing an update loop.
- * 
+ *
  * Hooks.on("preUpdateToken", (token, updateData) => {
  *   if (updateData.flags?.["appear-now"]?.appearNowImage) {
  *     token.setFlag("appear-now", "appearNowImage", updateData.flags["appear-now"].appearNowImage);
@@ -32,94 +31,103 @@ Hooks.on("renderTokenConfig", (app, html, data) => {
  * });
  */
 
+/**
+ * This version of the chatMessage hook simplifies the original code by:
+ * 
+ * 1. Extracting repetitive code into helper functions (`createTokenElement`, `createDialogueBox`, and `autoScrollDialogue`).
+ * 2. Streamlining the process of retrieving the token or actor image in a single line.
+ * 3. Automatically removing old without unnecessary conditions.
+ */
 
 // Main function that handles the appearance of the token and dialogue when a message is sent
 Hooks.on("chatMessage", (chatLog, message, chatData) => {
   const actor = game.actors.get(chatData.speaker.actor);
   if (!actor) return;
 
-  // Retrieve the token object
-  let token;
-  let tokenImg;
-  if (chatData.speaker.token) {
-    token = canvas.tokens.get(chatData.speaker.token); // Full token object from canvas
-    if (token && token.document) {
-      tokenImg = token.document.getFlag("appear-now", "appearNowImage") || token.document.texture.src;
-    }
-  }
-
-  // If no token, fallback to the actor's prototype token and check for flag there
-  if (!tokenImg) {
-    tokenImg = actor.getFlag("appear-now", "appearNowImage") || actor.prototypeToken.texture.src;
-  }
-
+  const token = chatData.speaker.token
+    ? canvas.tokens.get(chatData.speaker.token)
+    : null;
+  const tokenImg =
+    token?.document.getFlag("appear-now", "appearNowImage") ||
+    actor.getFlag("appear-now", "appearNowImage") ||
+    token?.document.texture.src ||
+    actor.prototypeToken.texture.src;
   if (!tokenImg) return;
 
   const tokenSize = game.settings.get("appear-now", "tokenSize");
   const maxActors = game.settings.get("appear-now", "maxActors");
   const scrollSpeed = game.settings.get("appear-now", "scrollSpeed") || 3;
 
-  // Ensure we don't go over the max allowed actors on screen
+  // Limit the number of displayed tokens
   if (activeTokens.length >= maxActors) {
-    const removedToken = activeTokens.shift();
-    document.body.removeChild(removedToken);
+    document.body.removeChild(activeTokens.shift());
   }
 
-  const tokenElement = document.createElement("div");
-  tokenElement.classList.add("appear-now-token");
-  tokenElement.style.width = `${tokenSize}px`;
-  tokenElement.style.height = `${tokenSize}px`;
-
-  // Calculate starting position for the new token
-  const totalTokenWidth = (activeTokens.length + 1) * (tokenSize + tokenBuffer);
-  const leftOffset = Math.max(window.innerWidth / 2 - totalTokenWidth / 2, 0);
-
-  tokenElement.style.position = "fixed";
-  tokenElement.style.top = "50%";
-  tokenElement.style.zIndex = "1"; // Set a low z-index to appear below other modals
-  tokenElement.style.left = `${
-    leftOffset + activeTokens.length * (tokenSize + tokenBuffer)
-  }px`;
-  tokenElement.style.transform = "translateY(-50%)"; // Centers vertically
-
-  const img = document.createElement("img");
-  img.src = tokenImg;
-  img.style.width = "100%";
-  img.style.height = "100%";
-  tokenElement.appendChild(img);
-
-  const dialogueBox = document.createElement("div");
-  dialogueBox.classList.add("appear-now-dialogue");
-  dialogueBox.innerText = message;
-  dialogueBox.style.overflowY = "auto"; // Add scroll bar if needed
-  dialogueBox.style.maxHeight = "100%"; // Ensure it fits within the token height
-
+  // Create token element
+  const tokenElement = createTokenElement(tokenSize, tokenImg);
+  const dialogueBox = createDialogueBox(message);
   tokenElement.appendChild(dialogueBox);
   document.body.appendChild(tokenElement);
   activeTokens.push(tokenElement);
 
-  // Handle automatic scrolling
+  // Scroll the dialogue
+  autoScrollDialogue(dialogueBox, scrollSpeed, tokenElement);
+
+  // Adjust token positions
+  shiftTokensLeft();
+});
+
+// Create token element
+function createTokenElement(tokenSize, tokenImg) {
+  const tokenElement = document.createElement("div");
+  tokenElement.classList.add("appear-now-token");
+  tokenElement.style = `
+    width: ${tokenSize}px; height: ${tokenSize}px; position: fixed; top: 50%; z-index: 1;
+    left: ${calculateLeftOffset(tokenSize)}px; transform: translateY(-50%);
+  `;
+
+  const img = document.createElement("img");
+  img.src = tokenImg;
+  img.style = "width: 100%; height: 100%;";
+  tokenElement.appendChild(img);
+
+  return tokenElement;
+}
+
+// Create dialogue box
+function createDialogueBox(message) {
+  const dialogueBox = document.createElement("div");
+  dialogueBox.classList.add("appear-now-dialogue");
+  dialogueBox.innerText = message;
+  dialogueBox.style = "overflow-y: auto; max-height: 100%;";
+  return dialogueBox;
+}
+
+// Calculate left offset for token element
+function calculateLeftOffset(tokenSize) {
+  const totalTokenWidth = (activeTokens.length + 1) * (tokenSize + tokenBuffer);
+  return (
+    Math.max(window.innerWidth / 2 - totalTokenWidth / 2, 0) +
+    activeTokens.length * (tokenSize + tokenBuffer)
+  );
+}
+
+// Auto-scroll the dialogue
+function autoScrollDialogue(dialogueBox, scrollSpeed, tokenElement) {
   let scrollPosition = 0;
   const scrollInterval = setInterval(() => {
     scrollPosition += scrollSpeed;
     dialogueBox.scrollTop = scrollPosition;
-
-    // Stop auto-scrolling if reached the bottom
     if (scrollPosition >= dialogueBox.scrollHeight - dialogueBox.clientHeight) {
       clearInterval(scrollInterval);
-      // Set timeout for 5 seconds after auto-scrolling finishes
       setTimeout(() => {
         document.body.removeChild(tokenElement);
         activeTokens = activeTokens.filter((t) => t !== tokenElement);
-
-        // Shift remaining tokens to the left
         shiftTokensLeft();
-      }, 5000); // 5 seconds after scrolling finishes
+      }, 5000);
     }
-  }, 100); // Adjust speed of scrolling if necessary
-
-  shiftTokensLeft(); // Shift tokens when a new one is added
-});
+  }, 100);
+}
 
 /**
  * REMOVE const tokenBuffer = 10, already declare on line 2
