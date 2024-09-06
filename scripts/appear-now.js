@@ -1,29 +1,37 @@
 let activeTokens = [];
 const tokenBuffer = 10; // Buffer between tokens for readability
 
-// Hook to add the "Appear Now Image" field in the Token Configuration
+/**
+ * Updated the renderTokenConfig hook to utilize the new <file-picker> element introduced in v12.
+ * The file-picker component simplifies the process of assigning an "Appear Now Image" by handling file selection automatically.
+ */
 Hooks.on("renderTokenConfig", (app, html, data) => {
-  const appearNowImage = app.object.getFlag("appear-now", "appearNowImage") || "";
+  const appearNowImage =
+    app.object.getFlag("appear-now", "appearNowImage") || "";
+
+  // Using the file-picker introduced on v12
   const newHtml = `
-    <div class="form-group">
-      <label>Appear Now Image:</label>
-      <div class="form-fields">
-        <input type="text" name="flags.appear-now.appearNowImage" value="${appearNowImage}">
-        <button type="button" class="file-picker" data-type="imagevideo" data-target="flags.appear-now.appearNowImage" title="Pick Image">
-          <i class="fas fa-file-image"></i>
-        </button>
-      </div>
-    </div>
-  `;
+          <div class="form-group">
+            <label>Appear Now Image</label>
+            <div class="form-fields">
+                <file-picker name="flags.appear-now.appearNowImage" type="imagevideo" value="${appearNowImage}"></file-picker>
+            </div>
+        </div>`;
   html.find("div.tab[data-tab='appearance']").append(newHtml);
 });
 
-// Hook to save the "Appear Now Image" field when updating the token
-Hooks.on("preUpdateToken", (token, updateData) => {
-  if (updateData.flags?.["appear-now"]?.appearNowImage) {
-    token.setFlag("appear-now", "appearNowImage", updateData.flags["appear-now"].appearNowImage);
-  }
-});
+
+/**
+ * 
+ * The issue arises with the preUpdateToken hook. Document#setFlag triggers a database update, which in turn activates the hook again, causing an update loop.
+ * 
+ * Hooks.on("preUpdateToken", (token, updateData) => {
+ *   if (updateData.flags?.["appear-now"]?.appearNowImage) {
+ *     token.setFlag("appear-now", "appearNowImage", updateData.flags["appear-now"].appearNowImage);
+ *   }
+ * });
+ */
+
 
 // Main function that handles the appearance of the token and dialogue when a message is sent
 Hooks.on("chatMessage", (chatLog, message, chatData) => {
@@ -57,32 +65,34 @@ Hooks.on("chatMessage", (chatLog, message, chatData) => {
     document.body.removeChild(removedToken);
   }
 
-  const tokenElement = document.createElement('div');
-  tokenElement.classList.add('appear-now-token');
+  const tokenElement = document.createElement("div");
+  tokenElement.classList.add("appear-now-token");
   tokenElement.style.width = `${tokenSize}px`;
   tokenElement.style.height = `${tokenSize}px`;
 
   // Calculate starting position for the new token
   const totalTokenWidth = (activeTokens.length + 1) * (tokenSize + tokenBuffer);
-  const leftOffset = Math.max((window.innerWidth / 2) - (totalTokenWidth / 2), 0);
+  const leftOffset = Math.max(window.innerWidth / 2 - totalTokenWidth / 2, 0);
 
-  tokenElement.style.position = 'fixed';
-  tokenElement.style.top = '50%';
-  tokenElement.style.zIndex = '1'; // Set a low z-index to appear below other modals
-  tokenElement.style.left = `${leftOffset + (activeTokens.length * (tokenSize + tokenBuffer))}px`;
-  tokenElement.style.transform = 'translateY(-50%)'; // Centers vertically
+  tokenElement.style.position = "fixed";
+  tokenElement.style.top = "50%";
+  tokenElement.style.zIndex = "1"; // Set a low z-index to appear below other modals
+  tokenElement.style.left = `${
+    leftOffset + activeTokens.length * (tokenSize + tokenBuffer)
+  }px`;
+  tokenElement.style.transform = "translateY(-50%)"; // Centers vertically
 
-  const img = document.createElement('img');
+  const img = document.createElement("img");
   img.src = tokenImg;
-  img.style.width = '100%';
-  img.style.height = '100%';
+  img.style.width = "100%";
+  img.style.height = "100%";
   tokenElement.appendChild(img);
 
-  const dialogueBox = document.createElement('div');
-  dialogueBox.classList.add('appear-now-dialogue');
+  const dialogueBox = document.createElement("div");
+  dialogueBox.classList.add("appear-now-dialogue");
   dialogueBox.innerText = message;
-  dialogueBox.style.overflowY = 'auto'; // Add scroll bar if needed
-  dialogueBox.style.maxHeight = '100%'; // Ensure it fits within the token height
+  dialogueBox.style.overflowY = "auto"; // Add scroll bar if needed
+  dialogueBox.style.maxHeight = "100%"; // Ensure it fits within the token height
 
   tokenElement.appendChild(dialogueBox);
   document.body.appendChild(tokenElement);
@@ -100,7 +110,7 @@ Hooks.on("chatMessage", (chatLog, message, chatData) => {
       // Set timeout for 5 seconds after auto-scrolling finishes
       setTimeout(() => {
         document.body.removeChild(tokenElement);
-        activeTokens = activeTokens.filter(t => t !== tokenElement);
+        activeTokens = activeTokens.filter((t) => t !== tokenElement);
 
         // Shift remaining tokens to the left
         shiftTokensLeft();
@@ -111,15 +121,16 @@ Hooks.on("chatMessage", (chatLog, message, chatData) => {
   shiftTokensLeft(); // Shift tokens when a new one is added
 });
 
+/**
+ * REMOVE const tokenBuffer = 10, already declare on line 2
+ */
 // Function to shift tokens left when one is removed or a new one is added
 function shiftTokensLeft() {
   const tokenSize = game.settings.get("appear-now", "tokenSize");
-  const tokenBuffer = 10; // Buffer between tokens
-
   const totalTokenWidth = activeTokens.length * (tokenSize + tokenBuffer);
-  const leftOffset = Math.max((window.innerWidth / 2) - (totalTokenWidth / 2), 0);
+  const leftOffset = Math.max(window.innerWidth / 2 - totalTokenWidth / 2, 0);
 
   activeTokens.forEach((t, index) => {
-    t.style.left = `${leftOffset + (index * (tokenSize + tokenBuffer))}px`;
+    t.style.left = `${leftOffset + index * (tokenSize + tokenBuffer)}px`;
   });
 }
